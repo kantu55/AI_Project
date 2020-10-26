@@ -13,6 +13,8 @@ public class Grid : MonoBehaviour
     float nodeDiameter; // ノードの直径
     int gridSizeX, gridSizeY; // グリッドの個数
 
+    public List<Node> path;
+
     void Start()
     {
         nodeDiameter = nodeRadius * 2;
@@ -34,24 +36,51 @@ public class Grid : MonoBehaviour
                 // 左下からグリッドを出していく
                 Vector3 worldPoint = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
                 bool walkable = !(Physics.CheckSphere(worldPoint, nodeRadius, unwalkableMask));
-                grid[x, y] = new Node(walkable, worldPoint);
+                grid[x, y] = new Node(walkable, worldPoint, x, y);
             }
         }
+    }
+
+    // 隣接ノードを取得する
+    public List<Node> GetNeighbours(Node node)
+    {
+        List<Node> neighbours = new List<Node>();
+        for(int x = -1; x <= 1; x++)
+        {
+            for (int y = -1; y <= 1; y++)
+            {
+                if (x == 0 && y == 0)
+                    continue;
+
+                int checkX = node.m_gridX + x;
+                int checkY = node.m_gridY + y;
+
+                if(checkX >= 0 && checkX < gridSizeX &&
+                    checkY >= 0 && checkY < gridSizeY)
+                {
+                    neighbours.Add(grid[checkX, checkY]);
+                }
+            }
+        }
+
+        return neighbours;
     }
 
     public Node GetNodeFromWorldPoint(Vector3 worldPosition)
     {
         float percentX = (worldPosition.x + gridWorldSize.x / 2) / gridWorldSize.x;
         float percentY = (worldPosition.z + gridWorldSize.y / 2) / gridWorldSize.y;
+        // 0か1で返す
         percentX = Mathf.Clamp01(percentX);
         percentY = Mathf.Clamp01(percentY);
 
+        // 整数にする
         int x = Mathf.RoundToInt((gridSizeX - 1) * percentX);
         int y = Mathf.RoundToInt((gridSizeY - 1) * percentY);
 
         return grid[x, y];
     }
-
+    
     // グリッドの表示
     void OnDrawGizmos()
     {
@@ -61,10 +90,13 @@ public class Grid : MonoBehaviour
             Node playerNode = GetNodeFromWorldPoint(player.position);
             foreach(Node n in grid)
             {
-                Gizmos.color = (n.m_Walkable) ? Color.green : Color.red;
-                if(playerNode == n)
+                Gizmos.color = (n.m_Walkable) ? Color.white : Color.red;
+                if(path != null)
                 {
-                    Gizmos.color = Color.cyan;
+                    if(path.Contains(n))
+                    {
+                        Gizmos.color = Color.black;
+                    }
                 }
                 Gizmos.DrawCube(n.m_WorldPosition, new Vector3((nodeDiameter - .1f), 0.5f,(nodeDiameter - .1f)));
             }
