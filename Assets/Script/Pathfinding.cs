@@ -5,7 +5,6 @@ using UnityEngine;
 public class Pathfinding : MonoBehaviour
 {
     public Transform seeker, target;
-
     Grid grid;
 
     void Awake()
@@ -29,34 +28,51 @@ public class Pathfinding : MonoBehaviour
         HashSet<Node> closedSet = new HashSet<Node>();
         openSet.Add(startNode);
 
+        // オープンリストが無くなるまで検索
         while(openSet.Count > 0)
         {
             Node currentNode = openSet[0];
             for(int i = 1; i < openSet.Count; i++)
             {
-                if(openSet[i].fCost < currentNode.fCost ||
+                /*
+                * 現在辿っているノードがオープンノードのトータルコストより高い
+                * 又は
+                * 現在辿っているノードとオープンノードのトータルコストが等しい 且つ
+                * 現在辿っているノードがオープンノードのヒューリスティックコストより高い
+                */
+                if (openSet[i].fCost < currentNode.fCost ||
                     openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost)
                 {
                     currentNode = openSet[i];
                 }
             }
 
+            // オープンリストから削除
             openSet.Remove(currentNode);
+            // クローズリストに追加
             closedSet.Add(currentNode);
 
+            // 検索ノードがゴールに達したらパスを作る
             if(currentNode == targetNode)
             {
                 RetracePath(startNode, targetNode);
                 return;
             }
-                
+
             foreach(Node neighbor in grid.GetNeighbours(currentNode))
             {
+                // 歩けない場所であるか隣接ノードにクローズリストがあれば次へ
                 if (!neighbor.m_Walkable || closedSet.Contains(neighbor))
                     continue;
 
+                // 現在のノードから隣接ノードまでの距離コストを出す
                 int MovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbor);
-                if(MovementCostToNeighbour < neighbor.gCost || !openSet.Contains(neighbor))
+
+                /* 現在のノードから隣接ノードまでの距離コストより隣接頂点間ノードが高い
+                 * 又は
+                 * 隣接ノードがオープンノードになければ隣接ノードとして登録
+                */
+                if (MovementCostToNeighbour < neighbor.gCost || !openSet.Contains(neighbor))
                 {
                     neighbor.gCost = MovementCostToNeighbour;
                     neighbor.hCost = GetDistance(neighbor, targetNode);
@@ -71,20 +87,24 @@ public class Pathfinding : MonoBehaviour
         }
     }
 
-    // 引き返す
+    // スタートからゴールまでのパスを作る
     void RetracePath(Node startNode, Node endNode)
     {
         List<Node> path = new List<Node>();
+        // ゴールのノードからスタート
         Node currentNode = endNode;
 
+        // ゴールからスタートまでノードを辿る
         while(currentNode != startNode)
         {
             path.Add(currentNode);
             currentNode = currentNode.parent;
         }
 
+        // 反転してスタートからゴールまでのパスを作る
         path.Reverse();
-
+        
+        //グリッドに反映
         grid.path = path;
     }
 

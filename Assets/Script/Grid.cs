@@ -18,11 +18,13 @@ public class Grid : MonoBehaviour
     void Start()
     {
         nodeDiameter = nodeRadius * 2;
+        // 四捨五入して値を返す
         gridSizeX = Mathf.RoundToInt(gridWorldSize.x / nodeDiameter);
         gridSizeY = Mathf.RoundToInt(gridWorldSize.y / nodeDiameter);
         CreateGrid();
     }
 
+    // グリッドを作成
     void CreateGrid()
     {
         grid = new Node[gridSizeX, gridSizeY];
@@ -35,7 +37,9 @@ public class Grid : MonoBehaviour
             {
                 // 左下からグリッドを出していく
                 Vector3 worldPoint = worldBottomLeft + Vector3.right * (x * nodeDiameter + nodeRadius) + Vector3.forward * (y * nodeDiameter + nodeRadius);
+                // DebugSphereを出して歩ける場所と歩けない場所を分けている
                 bool walkable = !(Physics.CheckSphere(worldPoint, nodeRadius, unwalkableMask));
+                // グリッド作成
                 grid[x, y] = new Node(walkable, worldPoint, x, y);
             }
         }
@@ -55,6 +59,7 @@ public class Grid : MonoBehaviour
                 int checkX = node.m_gridX + x;
                 int checkY = node.m_gridY + y;
 
+                // グリッドの範囲外であれば追加しない
                 if(checkX >= 0 && checkX < gridSizeX &&
                     checkY >= 0 && checkY < gridSizeY)
                 {
@@ -62,15 +67,15 @@ public class Grid : MonoBehaviour
                 }
             }
         }
-
         return neighbours;
     }
 
+    // 現在の座標からどのグリッドに位置しているかを調べる
     public Node GetNodeFromWorldPoint(Vector3 worldPosition)
     {
         float percentX = (worldPosition.x + gridWorldSize.x / 2) / gridWorldSize.x;
         float percentY = (worldPosition.z + gridWorldSize.y / 2) / gridWorldSize.y;
-        // 0か1で返す
+        // 1に補間する
         percentX = Mathf.Clamp01(percentX);
         percentY = Mathf.Clamp01(percentY);
 

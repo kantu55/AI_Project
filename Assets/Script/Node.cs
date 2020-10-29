@@ -5,12 +5,11 @@ public class Node
 {
     public bool m_Walkable; // 歩行可能か
     public Vector3 m_WorldPosition; // ワールド座標
-    public int m_gridX;
-    public int m_gridY;
-
-    public int gCost;
-    public int hCost;
-    public Node parent;
+    public int m_gridX; // グリッドNo（X座標）
+    public int m_gridY; // グリッドNo（Y座標）
+    public int gCost; // ノード間のコスト
+    public int hCost; // ヒューリスティックコスト
+    public Node parent; // 親ノード
 
     public Node(bool walkble, Vector3 worldPosition, int gridX, int gridY)
     {
@@ -20,7 +19,7 @@ public class Node
         m_gridY = gridY;
     }
 
-    // 最短コストを取得
+    // トータル（最短）コストを取得
     public int fCost
     {
         get
