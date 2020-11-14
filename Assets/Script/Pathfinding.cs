@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Diagnostics;
 
 public class Pathfinding : MonoBehaviour
 {
@@ -14,16 +15,20 @@ public class Pathfinding : MonoBehaviour
 
     void Update()
     {
+        if(Input.GetButtonDown("Jump"))
         FindPath(seeker.position, target.position);
     }
 
     // スタートからゴールまでのパスを見つける
     void FindPath(Vector3 startPos, Vector3 targetPos)
     {
+        Stopwatch sw = new Stopwatch();
+        sw.Start();
+
         Node startNode = grid.GetNodeFromWorldPoint(startPos);
         Node targetNode = grid.GetNodeFromWorldPoint(targetPos);
 
-        List<Node> openSet = new List<Node>();
+        Heap<Node> openSet = new Heap<Node>(grid.MaxSize);
         // HashSet...要素の重複を防ぐ
         HashSet<Node> closedSet = new HashSet<Node>();
         openSet.Add(startNode);
@@ -31,30 +36,16 @@ public class Pathfinding : MonoBehaviour
         // オープンリストが無くなるまで検索
         while(openSet.Count > 0)
         {
-            Node currentNode = openSet[0];
-            for(int i = 1; i < openSet.Count; i++)
-            {
-                /*
-                * 現在辿っているノードがオープンノードのトータルコストより高い
-                * 又は
-                * 現在辿っているノードとオープンノードのトータルコストが等しい 且つ
-                * 現在辿っているノードがオープンノードのヒューリスティックコストより高い
-                */
-                if (openSet[i].fCost < currentNode.fCost ||
-                    openSet[i].fCost == currentNode.fCost && openSet[i].hCost < currentNode.hCost)
-                {
-                    currentNode = openSet[i];
-                }
-            }
-
-            // オープンリストから削除
-            openSet.Remove(currentNode);
+            Node currentNode = openSet.RemoveFirst();
+           
             // クローズリストに追加
             closedSet.Add(currentNode);
 
             // 検索ノードがゴールに達したらパスを作る
             if(currentNode == targetNode)
             {
+                sw.Stop();
+                print("Path found: " + sw.ElapsedMilliseconds + " ms");
                 RetracePath(startNode, targetNode);
                 return;
             }
