@@ -5,22 +5,56 @@ using UnityEngine;
 public class Unit : MonoBehaviour
 {
     public Transform target;
+    Vector3 currentTargetPoint;
     public float speed = 1;
     Vector3[] path;
     int targetIndex;
+    bool pathSuccess = false;
+    Vector3 currentWayPoint;
 
     void Start()
     {
+        currentTargetPoint = target.position;
         PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+    }
+
+    private void Update()
+    {
+        if(pathSuccess)
+        {
+            if (transform.position == currentWayPoint)
+            {
+                targetIndex++;
+                if (targetIndex >= path.Length || target.position != currentTargetPoint)
+                {
+                    pathSuccess = false;
+                }
+                else
+                {
+                    currentWayPoint = path[targetIndex];
+                }
+            }
+            transform.position = Vector3.MoveTowards(transform.position, currentWayPoint, speed * Time.deltaTime);
+        }
+        else
+        {
+            currentTargetPoint = target.position;
+            PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+        }
     }
 
     public void OnPathFound(Vector3[] newPath, bool pathSuccessful)
     {
         if(pathSuccessful)
         {
-            path = newPath;
-            StopCoroutine("FollowPath");
-            StartCoroutine("FollowPath");
+            if(newPath != null)
+            {
+                path = newPath;
+                currentWayPoint = path[0];
+                pathSuccess = true;
+            }
+            //StopCoroutine("FollowPath");
+            //StartCoroutine("FollowPath");
         }
     }
 
