@@ -43,6 +43,7 @@ public class Node : IHeapItem<Node>
         }
     }
 
+    // コストを比較する関数
     public int CompareTo(Node nodeToCompare)
     {
         int compare = fCost.CompareTo(nodeToCompare.fCost);

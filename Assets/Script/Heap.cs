@@ -8,16 +8,13 @@ public class Heap<T> where T : IHeapItem<T>
     T[] items;
     int currentItemCount;
 
-    /*
-    * コンストラクタ
-    * @param maxHeapSize グリッドの数
-    */ 
+    //  コンストラクタ
     public Heap(int maxHeapSize)
     {
         items = new T[maxHeapSize];
     }
 
-    // アイテムの追加
+    // ノードの追加
     public void Add(T item)
     {
         item.HeapIndex = currentItemCount;
@@ -26,7 +23,30 @@ public class Heap<T> where T : IHeapItem<T>
         currentItemCount++;
     }
 
-    // ヒープからアイテムを削除する
+    // 親ノードよりも優先度が高い場合は交換する
+    void SortUp(T item)
+    {
+        // 現在のノードの親ノードを探す
+        int parentIndex = (item.HeapIndex - 1) / 2;
+        while (true)
+        {
+            T parentItem = items[parentIndex];
+            // Fコストが親よりも高かったら交換
+            // CompareTo・・・引数と比較して引数より高ければ1、低ければ-1を返す
+            if (item.CompareTo(parentItem) > 0)
+            {
+                Swap(item, parentItem);
+            }
+            else
+            {
+                break;
+            }
+            // 交換後、交換された親ノードを探す
+            parentIndex = (item.HeapIndex - 1) / 2;
+        }
+    }
+
+    // ノードを削除する
     public T RemoveFirst()
     {
         T firstItem = items[0];
@@ -37,9 +57,10 @@ public class Heap<T> where T : IHeapItem<T>
         return firstItem;
     }
 
-    // アイテムを取り込む
+    //子ノードと比較して順番を変える
     void SortDown(T item)
     {
+        // 交換するノードを左か右かを選ぶ
         while(true)
         {
             int childIndexLeft = item.HeapIndex * 2 + 1;
@@ -53,6 +74,7 @@ public class Heap<T> where T : IHeapItem<T>
                 // 子ノード（右側）がいるか確認
                 if(childIndexRight < currentItemCount)
                 {
+                    // ２つの子ノードの内どちらの優先度が高いか比較
                     if(items[childIndexLeft].CompareTo(items[childIndexRight]) < 0)
                     {
                         swapIndex = childIndexRight;
@@ -75,48 +97,7 @@ public class Heap<T> where T : IHeapItem<T>
         }
     }
 
-    // 特定のアイテムが含まれているか
-    public bool Contains(T item)
-    {
-        return Equals(items[item.HeapIndex], item);
-    }
-
-    // アイテムの更新
-     public void UpdateItem(T item)
-    {
-        SortUp(item);
-    }
-
-     // アイテムの数を取得する 
-     public int Count
-    {
-        get
-        {
-            return currentItemCount;
-        }
-    }
-
-    // 親ノードよりも優先度が高い場合は交換する
-    void SortUp(T item)
-    {
-        int parentIndex = (item.HeapIndex - 1) / 2;
-        while(true)
-        {
-            T parentItem = items[parentIndex];
-            // Fコストが親よりも高かったら交換
-            if(item.CompareTo(parentItem) > 0)
-            {
-                Swap(item, parentItem);
-            }
-            else
-            {
-                break;
-            }
-            parentIndex = (item.HeapIndex - 1) / 2;
-        }
-    }
-
-    // アイテムの交換
+    // ノードの交換
     void Swap(T itemA, T itemB)
     {
         items[itemA.HeapIndex] = itemB;
@@ -124,6 +105,28 @@ public class Heap<T> where T : IHeapItem<T>
         int itemAIndex = itemA.HeapIndex;
         itemA.HeapIndex = itemB.HeapIndex;
         itemB.HeapIndex = itemAIndex;
+    }
+
+    // 特定のノードが含まれているか
+    public bool Contains(T item)
+    {
+        // Equals・・・２つの引数の値が等しいか
+        return Equals(items[item.HeapIndex], item);
+    }
+
+    // ソートをしてノードを更新
+     public void UpdateItem(T item)
+    {
+        SortUp(item);
+    }
+
+     // ノードの数を取得する 
+     public int Count
+    {
+        get
+        {
+            return currentItemCount;
+        }
     }
 }
 

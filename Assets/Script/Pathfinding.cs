@@ -2,84 +2,97 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Diagnostics;
+using System;
 
 public class Pathfinding : MonoBehaviour
 {
-    public Transform seeker, target;
+    PathRequestManager requestManager;
     Grid grid;
 
     void Awake()
     {
+        requestManager = GetComponent<PathRequestManager>();
         grid = GetComponent<Grid>();
     }
-
-    void Update()
+    
+    public void StartFindPath(Vector3 startPos, Vector3 targetPos)
     {
-        if(Input.GetButtonDown("Jump"))
-        FindPath(seeker.position, target.position);
+        StartCoroutine(FindPath(startPos, targetPos));
     }
 
     // スタートからゴールまでのパスを見つける
-    void FindPath(Vector3 startPos, Vector3 targetPos)
+    IEnumerator FindPath(Vector3 startPos, Vector3 targetPos)
     {
         Stopwatch sw = new Stopwatch();
         sw.Start();
 
+        Vector3[] wayPoints = new Vector3[0];
+        bool pathSuccess = false;
+
         Node startNode = grid.GetNodeFromWorldPoint(startPos);
         Node targetNode = grid.GetNodeFromWorldPoint(targetPos);
 
-        Heap<Node> openSet = new Heap<Node>(grid.MaxSize);
-        // HashSet...要素の重複を防ぐ
-        HashSet<Node> closedSet = new HashSet<Node>();
-        openSet.Add(startNode);
-
-        // オープンリストが無くなるまで検索
-        while(openSet.Count > 0)
+        if(startNode.m_Walkable && targetNode.m_Walkable)
         {
-            Node currentNode = openSet.RemoveFirst();
-           
-            // クローズリストに追加
-            closedSet.Add(currentNode);
+            Heap<Node> openSet = new Heap<Node>(grid.MaxSize);
+            // HashSet...要素の重複を防ぐ
+            HashSet<Node> closedSet = new HashSet<Node>();
+            openSet.Add(startNode);
 
-            // 検索ノードがゴールに達したらパスを作る
-            if(currentNode == targetNode)
+            // オープンリストが無くなるまで検索
+            while (openSet.Count > 0)
             {
-                sw.Stop();
-                print("Path found: " + sw.ElapsedMilliseconds + " ms");
-                RetracePath(startNode, targetNode);
-                return;
-            }
+                Node currentNode = openSet.RemoveFirst();
 
-            foreach(Node neighbor in grid.GetNeighbours(currentNode))
-            {
-                // 歩けない場所であるか隣接ノードにクローズリストがあれば次へ
-                if (!neighbor.m_Walkable || closedSet.Contains(neighbor))
-                    continue;
+                // クローズリストに追加
+                closedSet.Add(currentNode);
 
-                // 現在のノードから隣接ノードまでの距離コストを出す
-                int MovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbor);
-
-                /* 現在のノードから隣接ノードまでの距離コストより隣接頂点間ノードが高い
-                 * 又は
-                 * 隣接ノードがオープンノードになければ隣接ノードとして登録
-                */
-                if (MovementCostToNeighbour < neighbor.gCost || !openSet.Contains(neighbor))
+                // 検索ノードがゴールに達したらパスを作る
+                if (currentNode == targetNode)
                 {
-                    neighbor.gCost = MovementCostToNeighbour;
-                    neighbor.hCost = GetDistance(neighbor, targetNode);
-                    neighbor.parent = currentNode;
+                    sw.Stop();
+                    print("Path found: " + sw.ElapsedMilliseconds + " ms");
+                    pathSuccess = true;
+                    break;
+                }
 
-                    // Openノードに隣接ノードが入っていなければ追加
-                    // Contains...要素の検索
-                    if (!openSet.Contains(neighbor))
-                        openSet.Add(neighbor);
+                foreach (Node neighbor in grid.GetNeighbours(currentNode))
+                {
+                    // 歩けない場所であるか隣接ノードにクローズリストがあれば次へ
+                    if (!neighbor.m_Walkable || closedSet.Contains(neighbor))
+                        continue;
+
+                    // 現在のノードから隣接ノードまでの距離コストを出す
+                    int MovementCostToNeighbour = currentNode.gCost + GetDistance(currentNode, neighbor);
+
+                    /* 現在のノードから隣接ノードまでの距離コストより隣接頂点間ノードが高い
+                     * 又は
+                     * 隣接ノードがオープンノードになければ隣接ノードとして登録
+                    */
+                    if (MovementCostToNeighbour < neighbor.gCost || !openSet.Contains(neighbor))
+                    {
+                        neighbor.gCost = MovementCostToNeighbour;
+                        neighbor.hCost = GetDistance(neighbor, targetNode);
+                        neighbor.parent = currentNode;
+
+                        // Openノードに隣接ノードが入っていなければ追加
+                        // Contains...要素の検索
+                        if (!openSet.Contains(neighbor))
+                            openSet.Add(neighbor);
+                    }
                 }
             }
         }
+        yield return null;
+        if(pathSuccess)
+        {
+            wayPoints = RetracePath(startNode, targetNode);
+        }
+        requestManager.FinishedProcessingPath(wayPoints, pathSuccess);
     }
 
     // スタートからゴールまでのパスを作る
-    void RetracePath(Node startNode, Node endNode)
+    Vector3[] RetracePath(Node startNode, Node endNode)
     {
         List<Node> path = new List<Node>();
         // ゴールのノードからスタート
@@ -92,11 +105,31 @@ public class Pathfinding : MonoBehaviour
             currentNode = currentNode.parent;
         }
 
+        // 進むポイントを決める
+        Vector3[] wayPoints = SimplifyPath(path);
+
         // 反転してスタートからゴールまでのパスを作る
-        path.Reverse();
-        
-        //グリッドに反映
-        grid.path = path;
+        Array.Reverse(wayPoints);
+        return wayPoints;
+    }
+
+    // 進むポイントを減らす
+    Vector3[] SimplifyPath(List<Node> path)
+    {
+        List<Vector3> wayPoints = new List<Vector3>();
+        Vector2 directionOld = Vector2.zero;
+        for(int i = 1; i < path.Count; i++)
+        {
+            // 次のノードの位置の差分を取る
+            Vector2 directionNew = new Vector2(path[i - 1].m_gridX - path[i].m_gridX, path[i - 1].m_gridY - path[i].m_gridY);
+            // 前回取った差分と不一致であれば、進むポイントとして登録する
+            if(directionNew != directionOld)
+            {
+                wayPoints.Add(path[i].m_WorldPosition);
+            }
+            directionOld = directionNew;
+        }
+        return wayPoints.ToArray();
     }
 
     int GetDistance(Node nodeA, Node nodeB)
@@ -104,7 +137,7 @@ public class Pathfinding : MonoBehaviour
         int dstX = Mathf.Abs(nodeA.m_gridX - nodeB.m_gridX);
         int dstY = Mathf.Abs(nodeA.m_gridY - nodeB.m_gridY);
 
-        // 14y + 10(x-y)で距離求まるらしい（＃＾ω＾）・・・
+        // √2（三平方の定理）+直線の距離
         if (dstX > dstY)
             return 14 * dstY + 10 * (dstX - dstY);
         return 14 * dstX + 10 * (dstY - dstX);

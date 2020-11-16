@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Grid : MonoBehaviour
 {
-    public bool onlyDisplayPathGizmos;
+    public bool displayGridGizmos;
     public Transform player;
     public LayerMask unwalkableMask;
     public Vector2 gridWorldSize; // グリッドのサイズ
@@ -13,10 +13,8 @@ public class Grid : MonoBehaviour
 
     float nodeDiameter; // ノードの直径
     int gridSizeX, gridSizeY; // グリッドの個数
-
-    public List<Node> path;
-
-    void Start()
+    
+    void Awake()
     {
         nodeDiameter = nodeRadius * 2;
         // 四捨五入して値を返す
@@ -99,36 +97,14 @@ public class Grid : MonoBehaviour
     void OnDrawGizmos()
     {
         Gizmos.DrawWireCube(transform.position, new Vector3(gridWorldSize.x, 1, gridWorldSize.y));
-
-        if(onlyDisplayPathGizmos)
-        {
-            if(path != null)
-            {
-                foreach(Node n in path)
-                {
-                    Gizmos.color = Color.black;
-                    Gizmos.DrawCube(n.m_WorldPosition, Vector3.one * (nodeDiameter - .1f));
-                }
-            }
-        }
-        else
-        {
-            if (grid != null)
+            if (grid != null && displayGridGizmos)
             {
                 Node playerNode = GetNodeFromWorldPoint(player.position);
                 foreach (Node n in grid)
                 {
                     Gizmos.color = (n.m_Walkable) ? Color.white : Color.red;
-                    if (path != null)
-                    {
-                        if (path.Contains(n))
-                        {
-                            Gizmos.color = Color.black;
-                        }
-                    }
                     Gizmos.DrawCube(n.m_WorldPosition, new Vector3((nodeDiameter - .1f), 0.5f, (nodeDiameter - .1f)));
                 }
             }
-        }
     }
 }
