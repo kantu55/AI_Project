@@ -38,42 +38,22 @@ public class Unit : MonoBehaviour
         }
         else
         {
-            currentTargetPoint = target.position;
-            PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+            if(target.position != currentTargetPoint)
+            {
+                PathRequestManager.RequestPath(transform.position, target.position, OnPathFound);
+                currentTargetPoint = target.position;
+            }
         }
     }
 
     public void OnPathFound(Vector3[] newPath, bool pathSuccessful)
     {
-        if(pathSuccessful)
+        if(pathSuccessful && newPath.Length > 0)
         {
-            if(newPath != null)
-            {
-                path = newPath;
-                currentWayPoint = path[0];
-                pathSuccess = true;
-            }
-            //StopCoroutine("FollowPath");
-            //StartCoroutine("FollowPath");
-        }
-    }
-
-    IEnumerator FollowPath()
-    {
-        Vector3 currentWayPoint = path[0];
-        while(true)
-        {
-            if(transform.position == currentWayPoint)
-            {
-                targetIndex++;
-                if(targetIndex >= path.Length)
-                {
-                    yield break;
-                }
-                currentWayPoint = path[targetIndex];
-            }
-            transform.position = Vector3.MoveTowards(transform.position, currentWayPoint, speed * Time.deltaTime);
-            yield return null;
+            targetIndex = 0;
+            path = newPath;
+            currentWayPoint = path[0];
+            pathSuccess = true;
         }
     }
 

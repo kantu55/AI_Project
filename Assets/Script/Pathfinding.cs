@@ -17,11 +17,11 @@ public class Pathfinding : MonoBehaviour
     
     public void StartFindPath(Vector3 startPos, Vector3 targetPos)
     {
-        StartCoroutine(FindPath(startPos, targetPos));
+        FindPath(startPos, targetPos);
     }
 
     // スタートからゴールまでのパスを見つける
-    IEnumerator FindPath(Vector3 startPos, Vector3 targetPos)
+    void FindPath(Vector3 startPos, Vector3 targetPos)
     {
         Stopwatch sw = new Stopwatch();
         sw.Start();
@@ -83,7 +83,6 @@ public class Pathfinding : MonoBehaviour
                 }
             }
         }
-        yield return null;
         if(pathSuccess)
         {
             wayPoints = RetracePath(startNode, targetNode);
